@@ -8,6 +8,10 @@
 #recurrence_pred --> clinical data recurrence only
 #unsupervised_training.csv --> clinical data NO recurrence only
 
+#recurrence_pred_with_filename --> same as recurrence_pred but with FILENAME 
+
+
+
 #sample_file_match.csv --> sanmpleID and filename ALL 
 #sample_file_match_filtered.csv --> sampleID and filename recurrence ONLY
 
@@ -82,4 +86,53 @@ print(f"Filtered sample_file_match shape: {filtered_sample_file_match.shape}")
 ##############################
 
 
+#%%
+#---------------------------
+#1. merge the clinical table with the filename
+#--------------------------
 
+import pandas as pd
+
+# Read the files
+sample_file_match_filtered = pd.read_csv('/mnt/bulk-curie/arianna/HECTOR/sample_file_match_filtered.csv')
+recurrence_pred = pd.read_csv('/mnt/bulk-curie/arianna/HECTOR/recurrence_pred.csv')
+
+# Merge the dataframes based on the PATIENT column
+merged_df = recurrence_pred.merge(sample_file_match_filtered[['PATIENT', 'FILENAME']], 
+                                   on='PATIENT', 
+                                   how='left')
+
+# Save the merged dataframe
+merged_df.to_csv('/mnt/bulk-curie/arianna/HECTOR/recurrence_pred_with_filename.csv', index=False)
+
+print(f"Original recurrence_pred shape: {recurrence_pred.shape}")
+print(f"Merged dataframe shape: {merged_df.shape}")
+
+
+
+# %%
+
+#-------------------------------
+#2. add the stage column according to the mitotic index
+#<= 5 LOW >5 HIGH
+#-------------------------------
+import pandas as pd
+import numpy as np
+
+# Read the CSV file
+df = pd.read_csv('/mnt/bulk-curie/arianna/HECTOR/recurrence_pred_with_filename.csv')
+
+# Convert Mitotic_index_5mm2 to numeric, coercing errors to NaN
+df['Mitotic_index_5mm2'] = pd.to_numeric(df['Mitotic_index_5mm2'], errors='coerce')
+
+# Create the 'stage' column 
+df['stage'] = np.where(
+    df['Mitotic_index_5mm2'].isna(), 
+    np.nan, 
+    np.where(df['Mitotic_index_5mm2'] <= 5, 'low', 'high')
+)
+
+# Optional: Print the first few rows to verify
+print(df[['Mitotic_index_5mm2', 'stage']].head(15))
+
+# %%
