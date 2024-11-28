@@ -80,3 +80,7 @@ python train.py \
 --workers 4 \
 --hp 0
 ```
+
+# Arianna Updates 
+
+Add the data_split.py to correctly select the data according to the inclusion criteria. NO ADJ therapy and INFO for RECURRENCE (yes|no)
