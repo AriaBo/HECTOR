@@ -136,3 +136,93 @@ df['stage'] = np.where(
 print(df[['Mitotic_index_5mm2', 'stage']].head(15))
 
 # %%
+#-----------------------------------
+#calculate the recurrence years 
+#------------------------------------
+
+from datetime import datetime
+
+# Calculate recurrence years
+df['recurrence_years'] = df.apply(
+    lambda row: (pd.to_datetime(row['Date_of_recurrence']) - pd.to_datetime(row['Date_of_Surgery'])).days / 365.25 
+    if row['Recurrence'] == 'yes' 
+    else (pd.to_datetime(row['Last_news_date']) - pd.to_datetime(row['Date_of_Surgery'])).days / 365.25,
+    axis=1
+)
+
+#count the total number of rows where the number of years it not na 
+rows_before = len(df) - df['recurrence_years'].isna().sum()
+print(rows_before)
+
+# Print first 10 lines of the updated dataframe
+print(df.head(10))
+
+# Check for zero or negative years
+invalid_years = df[df['recurrence_years'] <= 0]
+if not invalid_years.empty:
+    print("Warning: Found rows with zero or negative years:")
+    print(invalid_years)
+    # Optional: You might want to handle these cases
+    # For example, you could set them to NaN
+    df.loc[df['recurrence_years'] <= 0, 'recurrence_years'] = np.nan
+
+
+#count the total number of rows where the number of years it not na after removing 0 or negative values
+rows_after = len(df) - df['recurrence_years'].isna().sum()
+print(rows_after)
+print(df["recurrence_years"])
+
+print("Lowest value:", df['recurrence_years'].min())
+print("Highest value:", df['recurrence_years'].max())
+
+
+# %%
+
+# Determine number of bins using Sturges' rule
+n_bins = int(np.ceil(np.log2(len(df)) + 1))
+
+# Create bins using equal-width binning
+df['disc_label'] = pd.cut(df['recurrence_years'], 
+                           bins=n_bins, 
+                           labels=False)  # This ensures 0 to n-1 labeling
+
+
+print(df.head(10))
+df.to_csv("intermediate.csv", index="False")
+
+# %%
+
+#---------------------------------
+# add the censorship column  
+# 0 -> event , 1-> no event 
+#---------------------------------
+
+df['censorship'] = (df['Recurrence'] == 'no').astype(int)
+
+print(df[['censorship', 'Recurrence' ]])
+
+
+
+#%%
+#------------------------------
+#prepare the train - test split
+#------------------------------
+print(df['Center'].value_counts())
+
+df['split'] = df['Center'].apply(lambda x: 'training' if x in ['Bordeaux', 'Spain_Valencia'] else 'validation' if x == 'Muenster2' else 'test')
+
+
+# %%
+#------------------------------
+#keep only the column needed
+#rename the column "FILENAME"
+#save the dataframe in a csv file
+#------------------------------
+
+# Select and rename columns
+df_processed = df[['FILENAME', 'stage', 'recurrence_years', 'disc_label', 'censorship', 'PATIENT', 'split']].copy()
+df_processed.rename(columns={'FILENAME': 'slide_id'}, inplace=True)
+
+# Save to CSV
+df_processed.to_csv('preprocess_table.csv', index=False)
+# %%
