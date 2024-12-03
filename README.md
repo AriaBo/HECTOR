@@ -83,4 +83,7 @@ python train.py \
 
 # Arianna Updates 
 
-Add the data_split.py to correctly select the data according to the inclusion criteria. NO ADJ therapy and INFO for RECURRENCE (yes|no)
+Add the data_split.py to correctly select the data according to the inclusion criteria. NO ADJ therapy and INFO for RECURRENCE (yes|no) 
+
+determine the number of bins using Sturges rule
+n_bins = int(np.ceil(np.log2(len(df)) + 1)) 
